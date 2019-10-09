@@ -14,6 +14,8 @@ public struct APIManager {
     private struct Constants {
         /// Constant for the `bundleId` parameter in the iTunes Lookup API request.
         static let bundleID = "bundleId"
+        /// Constant for the Apple ID parameter in the iTunes Lookup API request.
+        static let appID = "id"
         /// Constant for the `country` parameter in the iTunes Lookup API request.
         static let country = "country"
     }
@@ -29,6 +31,10 @@ public struct APIManager {
     ///
     let countryCode: String?
 
+    /// The value of Apple ID that can be found on the web portal of App Store Connect, on the App Information screen
+    /// providing the details about the deployed application. Uniquely identifies the application on the App Store.
+    let appID: Int?
+
     /// Initializes `APIManager` to the region or country of an App Store in which the app is available.
     /// By default, all version check requests are performed against the US App Store.
     /// If the app is not available in the US App Store, set it to the identifier of at least one App Store region within which it is available.
@@ -36,8 +42,12 @@ public struct APIManager {
     /// [List of country codes](https://help.apple.com/app-store-connect/#/dev997f9cf7c)
     ///
     /// - Parameter countryCode: The country code for the App Store in which the app is availabe. Defaults to nil (e.g., the US App Store)
-    public init(countryCode: String? = nil) {
+    /// - Parameter appID: Apple ID for the applilcation taken from App Store Connect / App Information page of the app.
+    /// If not `nil`, the lookup request will use it for retrieving the application release state rather than the
+    /// value of `Bundle.main.bundleIdentifier` from the current running application.
+    public init(countryCode: String? = nil, appID: Int? = nil) {
         self.countryCode = countryCode
+        self.appID = appID
     }
 
     /// The default `APIManager`.
@@ -113,7 +123,12 @@ extension APIManager {
         components.host = "itunes.apple.com"
         components.path = "/lookup"
 
-        var items: [URLQueryItem] = [URLQueryItem(name: Constants.bundleID, value: Bundle.main.bundleIdentifier)]
+        var items: [URLQueryItem]
+        if let appID = appID {
+            items = [URLQueryItem(name: Constants.appID, value: "\(appID)")]
+        } else {
+            items = [URLQueryItem(name: Constants.bundleID, value: Bundle.main.bundleIdentifier)]
+        }
 
         if let countryCode = countryCode {
             let item = URLQueryItem(name: Constants.country, value: countryCode)
